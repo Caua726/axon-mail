@@ -1,0 +1,30 @@
+:root {
+    --fa-color: #000;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --fa-color: #fff;
+    }
+}
+[data-theme="dark"] {
+    --fa-color: #fff;
+}
+.fa-color {
+    color: var(--fa-color);
+}
+
+/* From left */
+@keyframes slide-in {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.slide-animation {
+    animation: slide-in 1.0s ease-out;
+}
