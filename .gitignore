@@ -1,1 +1,9 @@
+target/
+dist/
+
+# Rust / Cargo
 /target
+
+# Trunk build output
+/frontend/dist
+/.trunk
