@@ -1,11 +1,26 @@
 use yew::prelude::*;
 use reqwest::Client;
+use wasm_bindgen_futures::spawn_local;
 
 const SEARCH_TYPES: [&str; 3] = ["Domain", "Google", "Google + AI"];
 const SIDEBAR_CLASSES: &[&str] = &["column", "is-one-fifth", "bg-sky-800", "rounded-lg", "p-4", "shadow-xl", "fixed", "left-0", "top-0", "h-full", "transform", "transition-transform", "duration-300", "z-20"];
 const AI_MODELS: [&str; 2] = ["Gemini", "Ollama (Locally)"];
 const OLLAMA_MODELS: [&str; 4] = ["Deepseek R1 1.5B", "Qwen 2.5 1.5B", "Deepseek R1 8B", "Phi4 14B"];
 const URL: &str = "http://127.0.0.1:3000/";
+
+async fn fetch_ai_response(url: String, prompt: String) -> String {
+    let client = Client::new();
+    let response = client.post(url)
+        .body(prompt)
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    response
+}
+
 #[function_component]
 fn App() -> Html {
     let search_type_state = use_state(|| SEARCH_TYPES[2].to_string());
@@ -18,13 +33,12 @@ fn App() -> Html {
     let aisearch = {
         let ai_model = ai_model.clone();
         let ollama_model = ollama_model.clone();
-        let ai_response = ai_response.clone(); // Clone the response state
+        let ai_response = ai_response.clone();
         let ai_user_input = ai_user_input.clone();
         Callback::from(move |_: MouseEvent| {
-            if ai_model.is_empty() {
+            if (*ai_model).is_empty() {
                 ai_response.set("Please select an AI model.".to_string());
             } else if *ai_model == "Ollama (Locally)" {
-                // Handle valid Ollama model selections
                 ai_response.set(match ollama_model.as_str() {
                     "Phi4 14B" => "Phi4 14B".to_string(),
                     "Deepseek R1 8B" => "Deepseek R1 8B model.".to_string(),
@@ -33,9 +47,13 @@ fn App() -> Html {
                     _ => "Invalid Ollama model selected.".to_string(),
                 });
             } else if *ai_model == "Gemini" {
-                let prompt = ai_user_input.to_string();
+                let prompt = (*ai_user_input).clone();
                 let url: String = URL.to_string() + "gemini";
-                let response = ai_response(url, prompt);
+                let response_handle = ai_response.clone();
+                spawn_local(async move {
+                    let response = fetch_ai_response(url, prompt).await;
+                    response_handle.set(response);
+                });
             } else {
                 ai_response.set("Invalid AI model selected.".to_string());
             }
@@ -46,6 +64,14 @@ fn App() -> Html {
         Callback::from(move |e: Event| {
             let input = e.target_unchecked_into::<web_sys::HtmlInputElement>();
             ai_model.set(input.value());
+        })
+    };
+
+    let ai_user_input_onchange = {
+        let ai_user_input = ai_user_input.clone();
+        Callback::from(move |e: InputEvent| {
+            let input = e.target_unchecked_into::<web_sys::HtmlTextAreaElement>();
+            ai_user_input.set(input.value());
         })
     };
 
@@ -69,18 +95,6 @@ fn App() -> Html {
         })
     };
 
-    async fn ai_response(url: String, prompt: String) -> String {
-        let client = Client::new();
-        let response = client.post(url)
-            .body(prompt)
-            .send()
-            .await
-            .unwrap()
-            .text()
-            .await
-            .unwrap();
-        response
-    }
     html! {
         <div class="columns m-5 h-screen">
             <div class={classes!(SIDEBAR_CLASSES, if *menu_open { "translate-x-0" } else { "-translate-x-full" })}>
@@ -195,7 +209,7 @@ fn App() -> Html {
                                 <p class="mt-3">{"What do you want search?"}</p>
                                 <div class="columns">
                                     <div class="column">
-                                        <textarea value={(*ai_user_input).clone()} class="textarea mt-3" id="ai_user_input" placeholder="Describe your search needs"></textarea>
+                                        <textarea value={(*ai_user_input).clone()} oninput={ai_user_input_onchange} class="textarea mt-3" id="ai_user_input" placeholder="Describe your search needs"></textarea>
                                     </div>
                                     <div class="column">
                                         <textarea value={(*ai_response).clone()} class="textarea mt-3" id="ai_response" placeholder="Response"></textarea>
