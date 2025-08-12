@@ -50,7 +50,10 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
         elapsed_time: "00:00".to_string(),
     });
     let results = use_state(|| Vec::<EmailResult>::new());
+    let filtered_results = use_state(|| Vec::<EmailResult>::new());
     let iteration = use_state(|| 0u32);
+    let search_filter = use_state(|| String::new());
+    let status_filter = use_state(|| "all".to_string());
 
     // Dados de exemplo pre-definidos
     let sample_data = vec![
@@ -170,63 +173,120 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
             || {}
         });
     }
+    
+    // Lógica de filtro
+    {
+        let results_clone = results.clone();
+        let filtered_results_clone = filtered_results.clone();
+        
+        use_effect_with((results.clone(), search_filter.clone(), status_filter.clone()), move |(results, search_filter, status_filter)| {
+            let mut filtered = results.iter().cloned().collect::<Vec<_>>();
+            
+            // Filtro por texto
+            if !search_filter.is_empty() {
+                let search_lower = search_filter.to_lowercase();
+                filtered.retain(|email| {
+                    email.email.to_lowercase().contains(&search_lower) ||
+                    email.name.to_lowercase().contains(&search_lower) ||
+                    email.company.to_lowercase().contains(&search_lower) ||
+                    email.title.to_lowercase().contains(&search_lower)
+                });
+            }
+            
+            // Filtro por status
+            if status_filter.as_str() != "all" {
+                match status_filter.as_str() {
+                    "verified" => filtered.retain(|email| email.verified),
+                    "pending" => filtered.retain(|email| !email.verified),
+                    _ => {}
+                }
+            }
+            
+            filtered_results_clone.set(filtered);
+            || {}
+        });
+    }
+
+    let on_search_change = {
+        let search_filter = search_filter.clone();
+        Callback::from(move |e: InputEvent| {
+            let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+            search_filter.set(input.value());
+        })
+    };
+    
+    let on_status_filter_change = {
+        let status_filter = status_filter.clone();
+        Callback::from(move |e: Event| {
+            let select: web_sys::HtmlSelectElement = e.target_unchecked_into();
+            status_filter.set(select.value());
+        })
+    };
 
     html! {
         <div class="search-container">
-            // Header section following app pattern
+            // Header compacto com barra de progresso integrada
             <div class="search-header">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <button 
-                        class="btn btn-outline-secondary"
-                        onclick={
-                            let on_back = props.on_back.clone();
-                            Callback::from(move |_| on_back.emit(()))
-                        }
-                    >
-                        <i class="fas fa-arrow-left"></i>
-                        {"Voltar"}
-                    </button>
+                <div class="header-main">
+                    <div class="header-left">
+                        <button 
+                            class="btn btn-outline-secondary"
+                            onclick={
+                                let on_back = props.on_back.clone();
+                                Callback::from(move |_| on_back.emit(()))
+                            }
+                        >
+                            <i class="fas fa-arrow-left"></i>
+                            {"Voltar"}
+                        </button>
+                        
+                        <div class="title-section">
+                            <h1 class="search-title">{"Busca de Emails"}</h1>
+                            <span class="campaign-id">
+                                {"ID: "}{&props.search_id[..8]}{"..."}
+                            </span>
+                        </div>
+                    </div>
                     
-                    <div>
-                        <h1 class="search-title">{"Campanha de Busca de Emails"}</h1>
-                        <p class="search-subtitle">
-                            {"ID da Campanha: "}
-                            <code style="background: var(--surface-alt); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem;">
-                                {&props.search_id[..8]}{"..."}
-                            </code>
-                        </p>
+                    <div class="header-right">
+                        <div class={format!("status-badge status-{}", 
+                            match &*status {
+                                SearchStatus::Initializing => "warning",
+                                SearchStatus::Searching => "info", 
+                                SearchStatus::Completed => "success",
+                                SearchStatus::Paused => "danger",
+                            }
+                        )}>
+                            <div class="status-dot"></div>
+                            {match &*status {
+                                SearchStatus::Initializing => "Inicializando",
+                                SearchStatus::Searching => "Buscando",
+                                SearchStatus::Completed => "Concluído", 
+                                SearchStatus::Paused => "Pausado",
+                            }}
+                        </div>
+                        
+                        <div class="elapsed-time">
+                            <i class="fas fa-clock"></i>
+                            {&metrics.elapsed_time}
+                        </div>
+                        
+                        <div class="progress-text">
+                            {format!("{}%", metrics.search_progress)}
+                        </div>
                     </div>
                 </div>
                 
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div class={format!("status-indicator status-{}", 
-                        match &*status {
-                            SearchStatus::Initializing => "warning",
-                            SearchStatus::Searching => "info", 
-                            SearchStatus::Completed => "success",
-                            SearchStatus::Paused => "danger",
-                        }
-                    )}>
-                        <div class="status-dot"></div>
-                        {match &*status {
-                            SearchStatus::Initializing => "Inicializando",
-                            SearchStatus::Searching => "Buscando",
-                            SearchStatus::Completed => "Concluído", 
-                            SearchStatus::Paused => "Pausado",
-                        }}
-                    </div>
-                    
-                    <div style="color: var(--text-muted); font-size: 0.875rem; font-family: monospace;">
-                        <i class="fas fa-clock" style="margin-right: 0.5rem;"></i>
-                        {&metrics.elapsed_time}
-                    </div>
+                // Barra de progresso integrada
+                <div class="progress-bar-integrated">
+                    <div class="progress-fill" style={format!("width: {}%", metrics.search_progress)}></div>
                 </div>
             </div>
 
             <div class="search-content">
-                // Metrics Cards Grid
-                <div class="metrics-grid">
-                    <div class="metric-card">
+                // Metrics Cards - apenas os essenciais
+                <div class="metrics-row">
+                    <div class="metric-card primary">
                         <div class="metric-header">
                             <span class="metric-label">{"Emails Encontrados"}</span>
                             <i class="fas fa-envelope metric-icon"></i>
@@ -240,58 +300,60 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
 
                     <div class="metric-card">
                         <div class="metric-header">
-                            <span class="metric-label">{"Domínios"}</span>
+                            <span class="metric-label">{"Domínios Pesquisados"}</span>
                             <i class="fas fa-globe metric-icon"></i>
                         </div>
                         <div class="metric-value">{metrics.domains_searched}</div>
                         <div class="metric-subtitle">
                             {"Atual: "}
-                            <code style="font-size: 0.75rem; background: var(--surface-alt); padding: 0.125rem 0.25rem; border-radius: 0.125rem;">
-                                {&metrics.current_domain}
-                            </code>
+                            <span class="current-domain">{&metrics.current_domain}</span>
                         </div>
                     </div>
 
-                    <div class="metric-card">
+                    <div class="metric-card accent">
                         <div class="metric-header">
-                            <span class="metric-label">{"Fontes"}</span>
-                            <i class="fas fa-database metric-icon"></i>
+                            <span class="metric-label">{"Status da Busca"}</span>
+                            <i class="fas fa-chart-pulse metric-icon"></i>
                         </div>
-                        <div class="metric-value">{metrics.sources_used}</div>
-                        <div class="metric-subtitle">{"de 12 fontes de dados"}</div>
-                    </div>
-
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <span class="metric-label">{"Progresso"}</span>
-                            <i class="fas fa-chart-line metric-icon"></i>
-                        </div>
-                        <div class="metric-value">{format!("{}%", metrics.search_progress)}</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style={format!("width: {}%", metrics.search_progress)}></div>
+                        <div class="metric-value">{format!("{}min", (metrics.elapsed_time.split(':').nth(1).unwrap_or("0").parse::<i32>().unwrap_or(0) * 100 / 60) / 100)}</div>
+                        <div class="metric-subtitle">
+                            {"Tempo decorrido"}
                         </div>
                     </div>
                 </div>
 
                 // Results Table
                 <div class="results-area">
-                    <div class="results-header">
-                        <div>
-                            <h2 class="results-title">{"Resultados da Busca"}</h2>
-                            <p style="color: var(--text-muted); margin: 0; font-size: 0.875rem;">
-                                {"Emails descobertos em tempo real"}
-                            </p>
+                    <div class="results-toolbar">
+                        <div class="toolbar-left">
+                            <h2 class="results-title">{"Resultados"}</h2>
+                            <span class="results-count">
+                                {format!("{} emails encontrados", if filtered_results.is_empty() { results.len() } else { filtered_results.len() })}
+                            </span>
                         </div>
                         
                         if !results.is_empty() {
-                            <div class="results-actions">
-                                <button class="btn btn-primary">
+                            <div class="toolbar-right">
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Buscar emails..." 
+                                        class="search-input"
+                                        oninput={on_search_change}
+                                        value={(*search_filter).clone()}
+                                    />
+                                </div>
+                                
+                                <select class="filter-select" onchange={on_status_filter_change} value={(*status_filter).clone()}>
+                                    <option value="all">{"Todos"}</option>
+                                    <option value="verified">{"Verificados"}</option>
+                                    <option value="pending">{"Pendentes"}</option>
+                                </select>
+                                
+                                <button class="btn btn-outline-secondary btn-sm">
                                     <i class="fas fa-download"></i>
-                                    {"Exportar CSV"}
-                                </button>
-                                <button class="btn btn-outline-secondary">
-                                    <i class="fas fa-filter"></i>
-                                    {"Filtrar"}
+                                    {"CSV"}
                                 </button>
                             </div>
                         }
@@ -308,7 +370,7 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                             // Table Header
                             <div class="table-header">
                                 <div>{"Email"}</div>
-                                <div>{"Nome / Cargo"}</div>
+                                <div>{"Contato / Informações"}</div>
                                 <div>{"Empresa"}</div>
                                 <div>{"Fonte"}</div>
                                 <div>{"Confiança"}</div>
@@ -317,7 +379,11 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
 
                             // Table Body
                             <div class="table-body">
-                                {results.iter().enumerate().map(|(i, result)| {
+                                {(if filtered_results.is_empty() && search_filter.is_empty() && status_filter.as_str() == "all" {
+                                    results.iter().collect::<Vec<_>>()
+                                } else {
+                                    filtered_results.iter().collect::<Vec<_>>()
+                                }).iter().enumerate().map(|(i, result)| {
                                     html! {
                                         <div key={i} class="table-row">
                                             <div class="email-cell">
