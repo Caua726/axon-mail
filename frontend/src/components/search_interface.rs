@@ -1,7 +1,12 @@
 use yew::prelude::*;
 
+#[derive(Properties, PartialEq)]
+pub struct SearchInterfaceProps {
+    pub on_start_search: Callback<()>,
+}
+
 #[function_component]
-pub fn SearchInterface() -> Html {
+pub fn SearchInterface(props: &SearchInterfaceProps) -> Html {
     let search_query = use_state(|| String::new());
     let show_advanced = use_state(|| false);
     
@@ -80,9 +85,11 @@ pub fn SearchInterface() -> Html {
                 // Buttons
                 <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; justify-content: center;">
                     <button 
-                        onclick={Callback::from(move |_| {})}
-                        disabled={true}
-                        style="background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); padding: 10px 20px; border-radius: 4px; font-size: 14px; cursor: not-allowed; opacity: 0.6;"
+                        onclick={
+                            let on_start_search = props.on_start_search.clone();
+                            Callback::from(move |_: MouseEvent| on_start_search.emit(()))
+                        }
+                        style="background: var(--primary); color: white; border: 1px solid var(--primary); padding: 10px 20px; border-radius: 4px; font-size: 14px; cursor: pointer; transition: all 0.2s ease; hover: background: var(--primary-hover);"
                     >
                         {"Email Search"}
                     </button>
