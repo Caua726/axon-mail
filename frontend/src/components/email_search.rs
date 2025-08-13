@@ -1,5 +1,4 @@
 use yew::prelude::*;
-use gloo_timers::callback::{Interval, Timeout};
 
 #[derive(Properties, PartialEq)]
 pub struct EmailSearchProps {
@@ -12,7 +11,6 @@ pub enum SearchStatus {
     Initializing,
     Searching,
     Completed,
-    Paused,
 }
 
 #[derive(Clone, PartialEq)]
@@ -178,7 +176,6 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
     
     // Lógica de filtro
     {
-        let results_clone = results.clone();
         let filtered_results_clone = filtered_results.clone();
         
         use_effect_with((results.clone(), search_filter.clone(), status_filter.clone()), move |(results, search_filter, status_filter)| {
@@ -256,7 +253,6 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                                 SearchStatus::Initializing => "warning",
                                 SearchStatus::Searching => "info", 
                                 SearchStatus::Completed => "success",
-                                SearchStatus::Paused => "danger",
                             }
                         )}>
                             <div class="status-dot"></div>
@@ -264,7 +260,6 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                                 SearchStatus::Initializing => "Inicializando",
                                 SearchStatus::Searching => "Buscando",
                                 SearchStatus::Completed => "Concluído", 
-                                SearchStatus::Paused => "Pausado",
                             }}
                         </div>
                         
