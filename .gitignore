@@ -1,13 +1,61 @@
-target/
-dist/
-
 # Rust / Cargo
-/target
+**/target/
+**/Cargo.lock
+**/*.rs.bk
+**/*.pdb
 
 # Trunk build output
-/frontend/dist
-/.trunk
+**/dist/
+**/.trunk/
 
-Cargo.lock
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Database
 db/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.production
+.env.development
+
+# Node.js (se usar para ferramentas)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Secret keys
+*.key
+*.pem
+secret.*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Build artifacts
+wasm-pack.log
+pkg/
