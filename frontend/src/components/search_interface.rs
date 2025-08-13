@@ -51,28 +51,29 @@ pub fn SearchInterface() -> Html {
     html! {
         <>
             // Main search interface - Google-like
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; padding: 2rem;">
+            <div class="flex flex-col items-center justify-center" style="min-height: 60vh; padding: 2rem;">
                 // Logo/Title area
-                <div style="text-align: center; margin-bottom: 2rem;">
+                <div class="text-center mb-8">
                     <h1 style="font-size: 4rem; font-weight: 300; color: var(--text); margin: 0; letter-spacing: -2px;">
                         {"axon"}<span style="color: var(--primary);">{"email"}</span>
                     </h1>
                 </div>
 
                 // Search bar
-                <div style="width: 100%; max-width: 600px; position: relative;">
-                    <div style="display: flex; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 50px; padding: 12px 20px; box-shadow: 0 4px 20px var(--shadow); transition: all 0.2s ease; hover: box-shadow: 0 6px 25px var(--shadow);">
-                        <i class="fas fa-search" style="color: var(--text-muted); margin-right: 12px; font-size: 1.1rem;"></i>
+                <div class="w-full relative" style="max-width: 600px;">
+                    <div class="flex items-center rounded-full px-5 py-3 transition-all" style="background: var(--surface); border: 1px solid var(--border); box-shadow: 0 4px 20px var(--shadow); hover: box-shadow: 0 6px 25px var(--shadow);">
+                        <i class="fas fa-search mr-3 text-lg" style="color: var(--text-muted);"></i>
                         
                         <input 
                             type="text"
                             placeholder="Find email addresses..."
                             value={(*search_query).clone()}
                             oninput={on_search_query_change}
-                            style="flex: 1; border: none; background: transparent; font-size: 1.1rem; color: var(--text); outline: none;"
+                            class="flex-1 border-none bg-transparent text-lg outline-none"
+                            style="color: var(--text);"
                         />
                         
-                        <i class="fas fa-microphone" style="color: var(--text-muted); margin-left: 12px; font-size: 1.1rem; cursor: pointer; padding: 8px; border-radius: 50%; hover: background-color: var(--surface-alt);"></i>
+                        <i class="fas fa-microphone ml-3 text-lg cursor-pointer p-2 rounded-full" style="color: var(--text-muted); hover: background-color: var(--surface-alt);"></i>
                     </div>
                 </div>
 
