@@ -1,5 +1,4 @@
 use yew::prelude::*;
-use gloo_timers::callback::{Interval, Timeout};
 
 #[derive(Properties, PartialEq)]
 pub struct EmailSearchProps {
@@ -12,7 +11,6 @@ pub enum SearchStatus {
     Initializing,
     Searching,
     Completed,
-    Paused,
 }
 
 #[derive(Clone, PartialEq)]
@@ -82,6 +80,8 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
         EmailResult { email: "lisa.allen@discord.com".to_string(), name: "Lisa Allen".to_string(), title: "Head of Marketing".to_string(), company: "Discord".to_string(), source: "Clearbit".to_string(), confidence: 92, verified: true },
         EmailResult { email: "brian.king@reddit.com".to_string(), name: "Brian King".to_string(), title: "CTO".to_string(), company: "Reddit".to_string(), source: "EmailFinder".to_string(), confidence: 94, verified: false },
         EmailResult { email: "amy.wright@pinterest.com".to_string(), name: "Amy Wright".to_string(), title: "CMO".to_string(), company: "Pinterest".to_string(), source: "LinkedIn".to_string(), confidence: 91, verified: true },
+        EmailResult { email: "contato@knxbrasil.com.br".to_string(), name: "".to_string(), title: "Contato Geral".to_string(), company: "KNX Brasil".to_string(), source: "Company Website".to_string(), confidence: 95, verified: true },
+        EmailResult { email: "knxbrasil@knxbrasil.com.br".to_string(), name: "".to_string(), title: "Suporte Técnico".to_string(), company: "KNX Brasil".to_string(), source: "Company Website".to_string(), confidence: 94, verified: false },
     ];
 
     // Timer para simulação usando use_effect
@@ -129,22 +129,22 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                         let progress = std::cmp::min((iter * 4) as u32, 100);
                         let current_domain = domains_clone[(iter as usize - 1) % domains_clone.len()].to_string();
                         
-                        // Atualizar métricas
-                        let emails_count = (iter * 2) as u32;
+                        // Adicionar emails progressivamente
+                        let end_index = std::cmp::min((iter * 2) as usize, sample_data_clone.len());
+                        let current_results = sample_data_clone[0..end_index].to_vec();
+                        results_clone.set(current_results.clone());
+                        
+                        // Atualizar métricas com base nos resultados reais
+                        let emails_count = current_results.len() as u32;
                         metrics_clone.set(SearchMetrics {
                             emails_found: emails_count,
-                            verified_emails: ((iter as f32 * 1.5) as u32),
+                            verified_emails: current_results.iter().filter(|r| r.verified).count() as u32,
                             domains_searched: iter,
                             sources_used: std::cmp::min((iter / 3 + 1) as u32, 8),
                             search_progress: progress,
                             current_domain,
                             elapsed_time: format!("00:{:02}", iter),
                         });
-                        
-                        // Adicionar emails progressivamente
-                        let end_index = std::cmp::min(emails_count as usize, sample_data_clone.len());
-                        let current_results = sample_data_clone[0..end_index].to_vec();
-                        results_clone.set(current_results);
                         
                         if iter == 25 {
                             status_clone.set(SearchStatus::Completed);
@@ -176,7 +176,6 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
     
     // Lógica de filtro
     {
-        let results_clone = results.clone();
         let filtered_results_clone = filtered_results.clone();
         
         use_effect_with((results.clone(), search_filter.clone(), status_filter.clone()), move |(results, search_filter, status_filter)| {
@@ -254,7 +253,6 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                                 SearchStatus::Initializing => "warning",
                                 SearchStatus::Searching => "info", 
                                 SearchStatus::Completed => "success",
-                                SearchStatus::Paused => "danger",
                             }
                         )}>
                             <div class="status-dot"></div>
@@ -262,7 +260,6 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                                 SearchStatus::Initializing => "Inicializando",
                                 SearchStatus::Searching => "Buscando",
                                 SearchStatus::Completed => "Concluído", 
-                                SearchStatus::Paused => "Pausado",
                             }}
                         </div>
                         
@@ -391,8 +388,10 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                                                 <span style="font-family: monospace; font-weight: 500;">{&result.email}</span>
                                             </div>
                                             <div class="name-cell">
-                                                <div class="name">{&result.name}</div>
-                                                <div class="title">{&result.title}</div>
+                                                {&result.title}
+                                                if !result.name.is_empty() {
+                                                    {" - "}{&result.name}
+                                                }
                                             </div>
                                             <div class="company-cell">{&result.company}</div>
                                             <div class="source-cell">
