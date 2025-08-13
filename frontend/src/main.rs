@@ -39,9 +39,9 @@ fn HomePage() -> Html {
         Callback::from(move |_| sidebar_open.set(!*sidebar_open))
     };
 
-    let start_search = {
+    let _start_search = {
         let navigator = navigator.clone();
-        Callback::from(move |_| {
+        Callback::from(move |_: MouseEvent| {
             let search_id = Uuid::new_v4().to_string();
             navigator.push(&Route::Buscando { id: search_id });
         })
@@ -55,7 +55,7 @@ fn HomePage() -> Html {
                 <Header on_sidebar_toggle={toggle_sidebar} />
                 
                 <main class="main-content">
-                    <SearchInterface on_search_email={start_search} />
+                    <SearchInterface />
                 </main>
             </div>
         </div>
