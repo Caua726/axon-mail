@@ -4,7 +4,6 @@ use axum::{
 };
 use chrono::Local;
 use colored::*;
-use std::env;
 mod api;
 use api::llm::llm;
 
@@ -33,7 +32,7 @@ async fn main() {
     axum::serve(tokio::net::TcpListener::bind(server_url).await.unwrap(), app).await.unwrap();
 }
 
-fn routes() -> Router {
+pub fn routes() -> Router {
     Router::new()
         .route("/", get(|| async { "Hello, World" }))
         .route("/api/llm", post(llm))
