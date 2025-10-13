@@ -11,7 +11,7 @@ pub struct LlmPayload {
 }
 
 pub async fn llm(Json(payload): Json<LlmPayload>) -> Response {
-    match payload.provider.as_str() {
+    match payload.provider.to_lowercase().as_str() {
         "ollama" => ollama().await.into_response(),
         "gemini" => gemini().await.into_response(),
         "gpt" => gpt().await.into_response(),
@@ -35,14 +35,31 @@ async fn gpt() -> impl IntoResponse {
     Json(json!({ "provider": "gpt", "response": "Response from GPT" }))
 }
 
-async fn nebius() -> impl IntoResponse {
-    Json(json!({ "provider": "nebius", "response": "Response from Nebius" }))
-}
+#[cfg(test)]
+mod tests {
+    use axum::{
+        body::Body,
+        http::{Request, Method, StatusCode},
+    };
+    use tower::ServiceExt;
+    use crate::routes;
 
-async fn deepseek() -> impl IntoResponse {
-    Json(json!({ "provider": "deepseek", "response": "Response from DeepSeek" }))
-}
+    #[tokio::test]
+    async fn test_llm_case_insensitive() {
+        let app = routes();
 
-async fn custom(payload: Json<LlmPayload>) -> impl IntoResponse {
-    Json(json!({ "provider": "custom", "response": "Response from Custom" }))
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/llm")
+                    .header("Content-Type", "application/json")
+                    .body(Body::from(r#"{"provider": "Ollama"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
 }
