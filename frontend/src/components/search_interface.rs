@@ -1,50 +1,72 @@
+//! # Search Interface Component
+//!
+//! This module defines the `SearchInterface` component, which serves as the main
+//! entry point for users to start an email search. It features a simple,
+//! Google-like search bar and an "Advanced Options" modal for more complex queries.
+
 use yew::prelude::*;
 
+/// Properties for the `SearchInterface` component.
 #[derive(Properties, PartialEq)]
 pub struct SearchInterfaceProps {
+    /// A callback that is invoked when the user clicks the main "Email Search" button.
+    /// This signals the parent component to navigate to the search results page.
     pub on_start_search: Callback<()>,
 }
 
+/// The `SearchInterface` component provides the primary UI for initiating a search.
+///
+/// It manages a significant amount of local state using `use_state` hooks to handle
+/// user input for both the simple search and the various fields in the advanced
+/// options modal.
 #[function_component]
 pub fn SearchInterface(props: &SearchInterfaceProps) -> Html {
+    // State for the main search query input.
     let search_query = use_state(|| String::new());
+    // State to control the visibility of the advanced options modal.
     let show_advanced = use_state(|| false);
     
-    // Search category state
+    // State for the selected search category (e.g., "bulk_business", "specific_company").
     let search_category = use_state(|| String::new());
+    // State for the selected AI model provider.
     let ai_model = use_state(|| "gemini".to_string());
+    // State for the selected local Ollama model.
     let ollama_model = use_state(|| "deepseek_r1_1_5b".to_string());
     
-    // Bulk business category options
+    // State for the "Bulk business category" search options.
     let business_category = use_state(|| String::new());
     let business_category_other = use_state(|| String::new());
     let company_size = use_state(|| String::new());
     let job_roles = use_state(|| String::new());
     let location_filter = use_state(|| String::new());
     
-    // Specific company options
+    // State for the "Specific company" search options.
     let company_name = use_state(|| String::new());
     let company_domain = use_state(|| String::new());
     let department_filter = use_state(|| String::new());
     let employee_count = use_state(|| String::new());
     
-    // Domain emails options
+    // State for the "Domain emails" search options.
     let website_domain = use_state(|| String::new());
     let subdomain_include = use_state(|| false);
     
+    // State for the general search settings.
     let results_limit = use_state(|| 100);
     let search_mode = use_state(|| "site_count".to_string());
 
+    // Callback to toggle the visibility of the advanced options modal.
     let toggle_advanced = {
         let show_advanced = show_advanced.clone();
         Callback::from(move |_| show_advanced.set(!*show_advanced))
     };
 
+    // Callback to close the advanced options modal.
     let close_advanced = {
         let show_advanced = show_advanced.clone();
         Callback::from(move |_| show_advanced.set(false))
     };
 
+    // Callback to update the `search_query` state when the user types in the main search bar.
     let on_search_query_change = {
         let search_query = search_query.clone();
         Callback::from(move |e: InputEvent| {
@@ -55,16 +77,16 @@ pub fn SearchInterface(props: &SearchInterfaceProps) -> Html {
 
     html! {
         <>
-            // Main search interface - Google-like
+            // The main search interface, designed to resemble a clean, modern search engine page.
             <div class="flex flex-col items-center justify-center" style="min-height: 60vh; padding: 2rem;">
-                // Logo/Title area
+                // The application's logo and title.
                 <div class="text-center mb-8">
                     <h1 style="font-size: 4rem; font-weight: 300; color: var(--text); margin: 0; letter-spacing: -2px;">
                         {"axon"}<span style="color: var(--primary);">{"email"}</span>
                     </h1>
                 </div>
 
-                // Search bar
+                // The primary search bar.
                 <div class="w-full relative" style="max-width: 600px;">
                     <div class="flex items-center rounded-full px-5 py-3 transition-all" style="background: var(--surface); border: 1px solid var(--border); box-shadow: 0 4px 20px var(--shadow); hover: box-shadow: 0 6px 25px var(--shadow);">
                         <i class="fas fa-search mr-3 text-lg" style="color: var(--text-muted);"></i>
@@ -82,7 +104,7 @@ pub fn SearchInterface(props: &SearchInterfaceProps) -> Html {
                     </div>
                 </div>
 
-                // Buttons
+                // The main action buttons: "Email Search" and "Advanced Options".
                 <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; justify-content: center;">
                     <button 
                         onclick={
@@ -103,14 +125,16 @@ pub fn SearchInterface(props: &SearchInterfaceProps) -> Html {
                 </div>
             </div>
 
-            // Advanced options modal
+            // The advanced options modal, which is rendered conditionally based on the `show_advanced` state.
             if *show_advanced {
                 <>
+                    // A semi-transparent overlay to cover the background content.
                     <div 
                         style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 2rem;"
                         onclick={close_advanced.clone()}
                     ></div>
                     
+                    // The main modal container.
                     <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; z-index: 1001; box-shadow: 0 20px 60px var(--shadow);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
                             <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: var(--text);">{"Advanced Search Options"}</h2>
@@ -122,7 +146,7 @@ pub fn SearchInterface(props: &SearchInterfaceProps) -> Html {
                             </button>
                         </div>
 
-                        // AI Model Selection
+                        // A section for selecting the AI model to be used for the search.
                         <div style="margin-bottom: 2rem; padding: 1rem; background: var(--surface-alt); border-radius: 0.5rem;">
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text); font-size: 0.875rem;">{"AI Model Selection"}</label>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -143,6 +167,7 @@ pub fn SearchInterface(props: &SearchInterfaceProps) -> Html {
                                     <option value="claude">{"Claude"}</option>
                                 </select>
                                 
+                                // A conditional dropdown for selecting a local Ollama model.
                                 if *ai_model == "ollama" {
                                     <select 
                                         value={(*ollama_model).clone()}
@@ -166,6 +191,7 @@ pub fn SearchInterface(props: &SearchInterfaceProps) -> Html {
                             </div>
                         </div>
 
+                        // A section for selecting the type of search to perform.
                         <div style="margin-bottom: 2rem;">
                             <label style="display: block; margin-bottom: 1rem; font-weight: 600; color: var(--text); font-size: 1rem;">{"Select search type:"}</label>
                             <div style="display: grid; gap: 1rem;">
@@ -226,7 +252,7 @@ pub fn SearchInterface(props: &SearchInterfaceProps) -> Html {
                             </div>
                         </div>
 
-                        // Dynamic options based on selected category
+                        // A container for dynamically rendered options based on the selected search category.
                         if *search_category == "bulk_business" {
                             <div style="padding: 1rem; background: var(--surface-alt); border-radius: 0.5rem; margin-bottom: 1.5rem;">
                                 <h3 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 600; color: var(--text);">{"Bulk Business Search Options"}</h3>
@@ -462,7 +488,7 @@ pub fn SearchInterface(props: &SearchInterfaceProps) -> Html {
                             </div>
                         }
 
-                        // General Settings
+                        // A section for general settings that apply to all search types.
                         <div style="padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 0.5rem; margin-bottom: 1.5rem;">
                             <h3 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 600; color: var(--text);">{"General Settings"}</h3>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">

@@ -1,40 +1,71 @@
+//
+// The component simulates a search process with mock data and updates the UI in real-time.
+// It features a detailed results table with filtering and sorting capabilities.
 use yew::prelude::*;
 
+/// Properties for the `EmailSearch` component.
 #[derive(Properties, PartialEq)]
 pub struct EmailSearchProps {
+    /// A unique identifier for the current search session.
     pub search_id: String,
+    /// A callback function to be invoked when the user clicks the "back" button.
     pub on_back: Callback<()>,
 }
 
+/// Represents the current status of the email search.
 #[derive(Clone, PartialEq)]
 pub enum SearchStatus {
+    /// The search is being initialized.
     Initializing,
+    /// The search is actively in progress.
     Searching,
+    /// The search has been completed.
     Completed,
 }
 
+/// Represents a single email result found during the search.
 #[derive(Clone, PartialEq)]
 pub struct EmailResult {
+    /// The email address that was found.
     pub email: String,
+    /// The name of the contact associated with the email.
     pub name: String,
+    /// The job title of the contact.
     pub title: String,
+    /// The company where the contact works.
     pub company: String,
+    /// The source from which the email was discovered (e.g., "LinkedIn", "Company Website").
     pub source: String,
+    /// A score indicating the confidence level in the email's validity (0-100).
     pub confidence: u8,
+    /// A boolean indicating whether the email address has been verified.
     pub verified: bool,
 }
 
+/// A collection of metrics that provide real-time statistics about the search process.
 #[derive(Clone, PartialEq)]
 pub struct SearchMetrics {
+    /// The total number of emails found so far.
     pub emails_found: u32,
+    /// The number of emails that have been successfully verified.
     pub verified_emails: u32,
+    /// The number of domains that have been searched.
     pub domains_searched: u32,
+    /// The number of different sources used to find emails.
     pub sources_used: u32,
+    /// The overall progress of the search, as a percentage (0-100).
     pub search_progress: u32,
+    /// The domain that is currently being searched.
     pub current_domain: String,
+    /// The elapsed time since the search began, formatted as a string (e.g., "00:15").
     pub elapsed_time: String,
 }
 
+/// The `EmailSearch` component displays the main interface for an active email search.
+///
+/// This component is responsible for showing the real-time progress of a search,
+/// displaying the results in a filterable table, and providing metrics about the search.
+/// The search itself is simulated using a timer and mock data.
 #[function_component]
 pub fn EmailSearch(props: &EmailSearchProps) -> Html {
     let status = use_state(|| SearchStatus::Initializing);
@@ -53,7 +84,7 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
     let search_filter = use_state(|| String::new());
     let status_filter = use_state(|| "all".to_string());
 
-    // Dados de exemplo pre-definidos
+    // A hardcoded list of sample email results to be used in the simulation.
     let sample_data = vec![
         EmailResult { email: "sarah.johnson@google.com".to_string(), name: "Sarah Johnson".to_string(), title: "Software Engineer".to_string(), company: "Google".to_string(), source: "LinkedIn".to_string(), confidence: 89, verified: true },
         EmailResult { email: "michael.chen@microsoft.com".to_string(), name: "Michael Chen".to_string(), title: "Product Manager".to_string(), company: "Microsoft".to_string(), source: "Company Website".to_string(), confidence: 92, verified: false },
@@ -84,7 +115,8 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
         EmailResult { email: "knxbrasil@knxbrasil.com.br".to_string(), name: "".to_string(), title: "Suporte Técnico".to_string(), company: "KNX Brasil".to_string(), source: "Company Website".to_string(), confidence: 94, verified: false },
     ];
 
-    // Timer para simulação usando use_effect
+    // This `use_effect` hook simulates the email search process using a timer.
+    // It runs once when the component mounts and updates the state at regular intervals.
     {
         let status = status.clone();
         let metrics = metrics.clone();
@@ -101,7 +133,7 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
             ];
             let sample_data_clone = sample_data.clone();
             
-            // Função recursiva para continuar o timer
+            // A recursive function to simulate the search step-by-step.
             fn run_simulation(
                 iter: u32, 
                 status: UseStateHandle<SearchStatus>,
@@ -129,12 +161,12 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                         let progress = std::cmp::min((iter * 4) as u32, 100);
                         let current_domain = domains_clone[(iter as usize - 1) % domains_clone.len()].to_string();
                         
-                        // Adicionar emails progressivamente
+                        // Progressively add more results from the sample data.
                         let end_index = std::cmp::min((iter * 2) as usize, sample_data_clone.len());
                         let current_results = sample_data_clone[0..end_index].to_vec();
                         results_clone.set(current_results.clone());
                         
-                        // Atualizar métricas com base nos resultados reais
+                        // Update the search metrics based on the current results.
                         let emails_count = current_results.len() as u32;
                         metrics_clone.set(SearchMetrics {
                             emails_found: emails_count,
@@ -149,7 +181,7 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                         if iter == 25 {
                             status_clone.set(SearchStatus::Completed);
                         } else {
-                            // Recursivamente agendar próxima execução
+                            // Schedule the next iteration of the simulation.
                             run_simulation(
                                 iter + 1,
                                 status_clone,
@@ -162,26 +194,27 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                         }
                     });
                     
-                    // Prevenimos o handle de ser dropado muito cedo
+                    // `handle.forget()` prevents the timer from being dropped prematurely.
                     handle.forget();
                 }
             }
             
-            // Começar após 1 segundo
+            // Start the simulation after a 1-second delay.
             run_simulation(1, status, metrics, results, iteration, domains, sample_data_clone);
             
             || {}
         });
     }
     
-    // Lógica de filtro
+    // This `use_effect` hook is responsible for filtering the results whenever
+    // the search query or the status filter changes.
     {
         let filtered_results_clone = filtered_results.clone();
         
         use_effect_with((results.clone(), search_filter.clone(), status_filter.clone()), move |(results, search_filter, status_filter)| {
             let mut filtered = results.iter().cloned().collect::<Vec<_>>();
             
-            // Filtro por texto
+            // Filter by the text in the search input.
             if !search_filter.is_empty() {
                 let search_lower = search_filter.to_lowercase();
                 filtered.retain(|email| {
@@ -192,7 +225,7 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                 });
             }
             
-            // Filtro por status
+            // Filter by the selected status ("all", "verified", or "pending").
             if status_filter.as_str() != "all" {
                 match status_filter.as_str() {
                     "verified" => filtered.retain(|email| email.verified),
@@ -206,6 +239,7 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
         });
     }
 
+    // Callback for handling changes in the search input field.
     let on_search_change = {
         let search_filter = search_filter.clone();
         Callback::from(move |e: InputEvent| {
@@ -214,6 +248,7 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
         })
     };
     
+    // Callback for handling changes in the status filter dropdown.
     let on_status_filter_change = {
         let status_filter = status_filter.clone();
         Callback::from(move |e: Event| {
@@ -224,7 +259,7 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
 
     html! {
         <div class="search-container">
-            // Header compacto com barra de progresso integrada
+            // A compact header with an integrated progress bar.
             <div class="search-header">
                 <div class="header-main">
                     <div class="header-left">
@@ -274,14 +309,14 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                     </div>
                 </div>
                 
-                // Barra de progresso integrada
+                // The integrated progress bar at the bottom of the header.
                 <div class="progress-bar-integrated">
                     <div class="progress-fill" style={format!("width: {}%", metrics.search_progress)}></div>
                 </div>
             </div>
 
             <div class="search-content">
-                // Metrics Cards - apenas os essenciais
+                // A row of cards displaying the most essential search metrics.
                 <div class="metrics-row">
                     <div class="metric-card primary">
                         <div class="metric-header">
@@ -319,7 +354,7 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                     </div>
                 </div>
 
-                // Results Table
+                // The main area for displaying the search results.
                 <div class="results-area">
                     <div class="results-toolbar">
                         <div class="toolbar-left">
@@ -364,7 +399,7 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                         </div>
                     } else {
                         <div class="results-table">
-                            // Table Header
+                            // The header row for the results table.
                             <div class="table-header">
                                 <div>{"Email"}</div>
                                 <div>{"Contato / Informações"}</div>
@@ -374,7 +409,7 @@ pub fn EmailSearch(props: &EmailSearchProps) -> Html {
                                 <div>{"Status"}</div>
                             </div>
 
-                            // Table Body
+                            // The body of the table, where each row is an email result.
                             <div class="table-body">
                                 {(if filtered_results.is_empty() && search_filter.is_empty() && status_filter.as_str() == "all" {
                                     results.iter().collect::<Vec<_>>()
