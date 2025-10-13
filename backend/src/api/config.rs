@@ -1,3 +1,0 @@
-fn algo() {
-    println!("algo");
-}
