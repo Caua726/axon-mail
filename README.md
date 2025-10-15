@@ -115,7 +115,7 @@ In a separate terminal, navigate to the `frontend` directory and run:
 trunk serve
 ```
 
-The frontend application will be available at `http://127.0.0.1:8080`.
+The frontend application will be available at `http://12-7.0.0.1:8080`.
 
 ## Documentation
 
